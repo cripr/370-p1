@@ -13,7 +13,7 @@ LINKFLAGS = -lm
 # -g3 or -g includes debug info for gdb
 
 # Compile Assembler
-assembler: assembler.c
+assembler: starter_assembler.c
 	$(CXX) $(CXXFLAGS) $< $(LINKFLAGS) -o $@
 
 # Compile Simulator

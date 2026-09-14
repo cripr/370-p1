@@ -18,6 +18,16 @@ static inline int isNumber(char *);
 static inline void printHexToFile(FILE *, int);
 static int endsWith(char *, char *);
 
+struct Label_addr {
+    int pc;
+    char label1[MAXLINELENGTH];
+};
+
+// helper function declarations
+uint32_t bit_opcode(char *opcode);
+
+
+// main function
 int
 main(int argc, char **argv)
 {
@@ -62,34 +72,153 @@ main(int argc, char **argv)
         exit(1);
     }
 
+    //my code goes under here
+
+    int PC = 0;
+
+    struct Label_addr labels[MAXLINELENGTH];
+    int num_labels = 0;
+
+    // 1st run: read and store labels' addresses
+    while (readAndParse(inFilePtr, label, opcode, arg0, arg1, arg2)) {
+        if (label[0] != '\0') {
+            strcpy(labels[num_labels].label1, label);
+            labels[num_labels].pc = PC;
+            num_labels++;
+        }
+        PC++;
+    }
+
+    // 2nd run: translate all lines to machine code
+
+    PC = 0;
+    uint32_t total_bit_reps[MAXLINELENGTH];
+    int num_inst = 0;
+    
+
+    rewind(inFilePtr);
+    while (readAndParse(inFilePtr, label, opcode, arg0, arg1, arg2)) {
+        uint32_t inst_bits = 0;
+
+        //.fill handling
+        if(!strcmp(opcode, ".fill")) {
+            if (isNumber(arg0)) {
+                inst_bits = atoi(arg0);
+            }
+            else {
+                for (int i = 0; i < num_labels; i++) {
+                    if (!strcmp(labels[i].label1, arg0)) {
+                        inst_bits = labels[i].pc;
+                    }
+                }
+            }
+        }
+
+        // rest of instructions
+        else {
+            uint32_t op_type = bit_opcode(opcode);
+            //beq handling
+            if(op_type == 4) {
+                int offset = atoi(arg2);
+                for (int i = 0; i < num_labels; i++) {
+                    if (!strcmp(labels[i].label1, arg2)) {
+                        offset = labels[i].pc - (PC + 1);
+                    }
+                }
+                inst_bits = (inst_bits << 3) | op_type;
+                inst_bits = (inst_bits << 3) | atoi(arg0);
+                inst_bits = (inst_bits << 3) | atoi(arg1);
+                inst_bits = (inst_bits << 16) | offset;
+            }
+            else if(op_type == 0 || op_type == 1) {
+                inst_bits  = (inst_bits << 3) | op_type;
+                inst_bits = (inst_bits << 3) | atoi(arg1);
+                inst_bits = (inst_bits << 3) | atoi(arg2);
+                inst_bits = (inst_bits << 13) | 0;
+                inst_bits = (inst_bits << 3) | atoi(arg0);
+            }
+            else if(op_type == 2 || op_type == 3) {
+                int offset = atoi(arg2);
+                for (int i = 0; i < num_labels; i++) {
+                    if (!strcmp(labels[i].label1, arg2)) {
+                        offset = labels[i].pc;
+                    }
+                }
+                inst_bits = (inst_bits << 3) | op_type;
+                inst_bits = (inst_bits << 3) | atoi(arg0);
+                inst_bits = (inst_bits << 3) | atoi(arg1);
+                inst_bits = (inst_bits << 16) | offset;
+            }
+            else if(op_type == 5) {
+                inst_bits = (inst_bits << 3) | op_type;
+                inst_bits = (inst_bits << 3) | atoi(arg1);
+                inst_bits = (inst_bits << 3) | atoi(arg2);
+                inst_bits = (inst_bits << 16) | 0;
+            } 
+            else if(op_type == 6 || op_type == 7) {
+                inst_bits = (inst_bits << 3) | op_type;
+                inst_bits = (inst_bits << 22) | atoi(arg0);
+            }
+        }
+        total_bit_reps[num_inst] = inst_bits;
+        num_inst++;
+        PC++;
+    }
+
+    
+    for(int i = 0; i < num_inst; i++) {
+        printHexToFile(outFilePtr, total_bit_reps[i]);
+    }
+
+
+    //my code ends here
+
     /* here is an example for how to use readAndParse to read a line from
         inFilePtr */
-    if (! readAndParse(inFilePtr, label, opcode, arg0, arg1, arg2) ) {
-        /* reached end of file */
-    }
-
-    /* this is how to rewind the file ptr so that you start reading from the
-        beginning of the file */
-    rewind(inFilePtr);
-
-    /* after doing a readAndParse, you may want to do the following to test the
-        opcode */
-    if (!strcmp(opcode, "add")) {
-        /* do whatever you need to do for opcode "add" */
-    }
-
-    /* here is an example of using isNumber. "5" is a number, so this will
-       return true */
-    if(isNumber("5")) {
-        printf("It's a number\n");
-    }
-
-    /* here is an example of using printHexToFile. This will print a
-       machine code word / number in the proper hex format to the output file */
-    printHexToFile(outFilePtr, 123);
+    //if (! readAndParse(inFilePtr, label, opcode, arg0, arg1, arg2) ) {
+    //    /* reached end of file */
+    //}
+//
+    ///* this is how to rewind the file ptr so that you start reading from the
+    //    beginning of the file */
+    //rewind(inFilePtr);
+//
+    ///* after doing a readAndParse, you may want to do the following to test the
+    //    opcode */
+    //if (!strcmp(opcode, "add")) {
+    //    /* do whatever you need to do for opcode "add" */
+    //}
+//
+    ///* here is an example of using isNumber. "5" is a number, so this will
+    //   return true */
+    //if(isNumber("5")) {
+    //    printf("It's a number\n");
+    //}
+//
+    ///* here is an example of using printHexToFile. This will print a
+    //   machine code word / number in the proper hex format to the output file */
+    //printHexToFile(outFilePtr, 123);
 
     return(0);
 }
+
+//MY HELPER FUNCTIONS
+
+uint32_t bit_opcode(char *opcode) {
+    if(!strcmp(opcode, "add")) {return 0;}
+    if(!strcmp(opcode, "nor")) {return 1;}
+    if(!strcmp(opcode, "lw")) {return 2;}
+    if(!strcmp(opcode, "sw")) {return 3;}
+    if(!strcmp(opcode, "beq")) {return 4;}
+    if(!strcmp(opcode, "jalr")) {return 5;}
+    if(!strcmp(opcode, "halt")) {return 6;}
+    if(!strcmp(opcode, "noop")) {return 7;}
+    exit(1);
+}
+
+
+
+//my helper functions end here
 
 // Returns non-zero if the line contains only whitespace.
 static int lineIsBlank(char *line) {
