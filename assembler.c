@@ -128,14 +128,14 @@ main(int argc, char **argv)
                 inst_bits = (inst_bits << 3) | op_type;
                 inst_bits = (inst_bits << 3) | atoi(arg0);
                 inst_bits = (inst_bits << 3) | atoi(arg1);
-                inst_bits = (inst_bits << 16) | offset;
+                inst_bits = (inst_bits << 16) | (offset & 0xFFFF);
             }
             else if(op_type == 0 || op_type == 1) {
                 inst_bits  = (inst_bits << 3) | op_type;
-                inst_bits = (inst_bits << 3) | atoi(arg1);
-                inst_bits = (inst_bits << 3) | atoi(arg2);
-                inst_bits = (inst_bits << 13) | 0;
                 inst_bits = (inst_bits << 3) | atoi(arg0);
+                inst_bits = (inst_bits << 3) | atoi(arg1);
+                inst_bits = (inst_bits << 13) | 0;
+                inst_bits = (inst_bits << 3) | atoi(arg2);
             }
             else if(op_type == 2 || op_type == 3) {
                 int offset = atoi(arg2);
@@ -145,14 +145,14 @@ main(int argc, char **argv)
                     }
                 }
                 inst_bits = (inst_bits << 3) | op_type;
-                inst_bits = (inst_bits << 3) | atoi(arg0);
                 inst_bits = (inst_bits << 3) | atoi(arg1);
-                inst_bits = (inst_bits << 16) | offset;
+                inst_bits = (inst_bits << 3) | atoi(arg2);
+                inst_bits = (inst_bits << 16) | (offset & 0xFFFF);
             }
             else if(op_type == 5) {
                 inst_bits = (inst_bits << 3) | op_type;
+                inst_bits = (inst_bits << 3) | atoi(arg0);
                 inst_bits = (inst_bits << 3) | atoi(arg1);
-                inst_bits = (inst_bits << 3) | atoi(arg2);
                 inst_bits = (inst_bits << 16) | 0;
             } 
             else if(op_type == 6 || op_type == 7) {
