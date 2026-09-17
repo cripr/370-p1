@@ -114,6 +114,27 @@ main(int argc, char **argv)
             }
         }
 
+        // pseudo 'b'
+        else if (!strcmp(opcode, "b")) {
+            int offset = atoi(arg0);
+            for (int i = 0; i < num_labels; i++) {
+                if (!strcmp(labels[i].label1, arg0)) {
+                    offset = labels[i].pc - (PC + 1);
+                }
+            }
+            inst_bits = (inst_bits << 3) | 0b100;
+            inst_bits = (inst_bits << 3) | 0;
+            inst_bits = (inst_bits << 3) | 0;
+            inst_bits = (inst_bits << 16) | (offset & 0xFFFF);
+        }
+        // pseudo 'jump'
+        else if (!strcmp(opcode, "jump")) {
+            inst_bits = (inst_bits << 3) | 0b101;
+            inst_bits = (inst_bits << 3) | atoi(arg0);
+            inst_bits = (inst_bits << 3) | 0;
+            inst_bits = (inst_bits << 16) | 0;
+        }
+
         // rest of instructions
         else {
             uint32_t op_type = bit_opcode(opcode);
@@ -145,8 +166,8 @@ main(int argc, char **argv)
                     }
                 }
                 inst_bits = (inst_bits << 3) | op_type;
+                inst_bits = (inst_bits << 3) | atoi(arg0);
                 inst_bits = (inst_bits << 3) | atoi(arg1);
-                inst_bits = (inst_bits << 3) | atoi(arg2);
                 inst_bits = (inst_bits << 16) | (offset & 0xFFFF);
             }
             else if(op_type == 5) {
@@ -154,11 +175,11 @@ main(int argc, char **argv)
                 inst_bits = (inst_bits << 3) | atoi(arg0);
                 inst_bits = (inst_bits << 3) | atoi(arg1);
                 inst_bits = (inst_bits << 16) | 0;
-            } 
+            }
             else if(op_type == 6 || op_type == 7) {
                 inst_bits = (inst_bits << 3) | op_type;
-                inst_bits = (inst_bits << 22) | atoi(arg0);
-            }
+                inst_bits = (inst_bits << 22) | 0;
+            } 
         }
         total_bit_reps[num_inst] = inst_bits;
         num_inst++;
